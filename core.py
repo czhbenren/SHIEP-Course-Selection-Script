@@ -3,6 +3,10 @@ import threading
 import sys
 import time
 
+import warnings
+from urllib3.exceptions import InsecureRequestWarning
+warnings.simplefilter("ignore", InsecureRequestWarning)
+
 from config import url, headers, params, data, proxies, failed_words, error_words
 from custom import cookies
 
@@ -12,8 +16,9 @@ succeed = threading.Event ()
 
 def select_course ():
     try:
-        response = requests.post (url=url, headers=headers, cookies=cookies, params=params, data=current_course_data, proxies=proxies, timeout=3)
+        response = requests.post (url=url, headers=headers, cookies=cookies, params=params, data=current_course_data, proxies=proxies, timeout=3, verify=False)
         if response.status_code == 200:
+            print (response.text)
             if any (i in response.text for i in failed_words):
                 print ("Cannot select this course, maybe it's full or due to other reasons.\n")
             elif any (i in response.text for i in error_words):
@@ -25,9 +30,11 @@ def select_course ():
                 print ("Succeeded!\n")
                 succeed.set ()
         else:
+            print (response.status_code)
             print ("Non-200 return.\n")
     except Exception as e:
-        print (f"Exception Occurred: {e}\n")
+        print (e)
+        print ("Exception Occurred.\n")
     return False
 
 def repeat_selection ():
@@ -46,4 +53,4 @@ if __name__ == "__main__":
     course_id = sys.argv[1]
     current_course_data['operator0'] = f"{course_id}:true:0"
     repeat_selection ()
-    wait = input ("Press any key to continue.")
+    wait = input ("The course selection has ended. Press any key and enter to exit.")
