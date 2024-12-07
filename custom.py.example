@@ -1,0 +1,11 @@
+cookies = {
+    'semester.id': '',
+    'JSESSIONID': '',
+    'GSESSIONID': '',
+    'SERVERNAME': '',
+    'iPlanetDirectoryPro': '',
+}
+
+course_ids = [
+    "114514",
+]
