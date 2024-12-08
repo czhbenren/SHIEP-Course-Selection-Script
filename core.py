@@ -16,7 +16,8 @@ succeed = threading.Event ()
 
 def select_course ():
     try:
-        response = requests.post (url=url, headers=headers, cookies=cookies, params=params, data=current_course_data, proxies=proxies, timeout=3, verify=False)
+        # response = requests.post (url=url, headers=headers, cookies=cookies, params=params, data=current_course_data, proxies=proxies, timeout=3, verify=False)
+        response = requests.post (url=url, headers=headers, cookies=cookies, params=params, data=current_course_data, timeout=3, verify=False)
         if response.status_code == 200:
             print (response.text)
             if any (i in response.text for i in failed_words):
@@ -41,7 +42,7 @@ def repeat_selection ():
     while not succeed.is_set ():
         thread = threading.Thread (target=select_course)
         thread.start ()
-        time.sleep (0.2)
+        time.sleep (0.5)
 
 if __name__ == "__main__":
     if len (sys.argv) < 2:
