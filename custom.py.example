@@ -1,8 +1,23 @@
-cookies = {
-    'JSESSIONID': '',
-    'SERVERNAME': '',
-}
-
-course_ids = [
-    "114514",
+USER_CONFIGS = [
+    {
+        "label": "User_Alice",
+        "profileId": "114514",
+        "cookies": {
+            "JSESSIONID": "ALICE_SESSION_ID_HERE",
+            "SERVERNAME": "c1",
+        },
+        "course_ids": [
+            "COURSEID_A1",
+            "COURSEID_A2",
+        ],
+    },
+    # ... other user configs for selection ...
 ]
+
+INQUIRY_USER_DATA = {
+    "label": "DefaultInquiryUser",
+    "cookies": {  # Ensure these are filled
+        "JSESSIONID": "YOUR_INQUIRY_JSESSIONID_HERE",
+        "SERVERNAME": "YOUR_INQUIRY_SERVERNAME_HERE",
+    },
+}

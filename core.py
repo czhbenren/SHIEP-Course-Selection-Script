@@ -1,57 +1,114 @@
-import requests
-import threading
-import sys
-import time
+import asyncio
+import aiohttp
 import warnings
 from urllib3.exceptions import InsecureRequestWarning
 
-from config import url, headers, params, data, proxies, failed_words, error_words
-from custom import cookies
+try:
+    from aiohttp_socks import ProxyConnector
+except ImportError:
+    ProxyConnector = None
+
+from config import url, headers, data as base_data_payload, proxies, failed_words, error_words, USE_PROXY
 
 warnings.simplefilter("ignore", InsecureRequestWarning)
 
-succeed = threading.Event()
 
+async def attempt_single_course_selection(
+    session: aiohttp.ClientSession,
+    course_id_to_select: str,
+    user_cookies: dict,
+    user_params: dict,
+    succeed_event: asyncio.Event,
+):
+    """
+    Makes a single attempt to select a course for a specific user.
+    Sets the provided succeed_event if successful.
+    """
 
-def select_course():
+    current_data_payload = base_data_payload.copy()
+    current_data_payload["operator0"] = f"{course_id_to_select}:true:0"
+
+    request_kwargs = {
+        "headers": headers,
+        "cookies": user_cookies,
+        "params": user_params,
+        "data": current_data_payload,
+        "timeout": 3,
+        "ssl": False,  # disables SSL cert verification
+    }
+
     try:
-        response = requests.post(url=url, headers=headers, cookies=cookies, params=params, data=data, proxies=proxies, timeout=3, verify=False)
-        if response.status_code == 200:
-            print(response.text)
-            if any(i in response.text for i in failed_words):
-                print("Cannot select this course, maybe it's full or due to other reasons.\n")
-            elif any(i in response.text for i in error_words):
-                print("Selection failed.\n")
-            elif "已经选过" in response.text:
-                print("Already succeeded!\n")
-                succeed.set()
+        async with session.post(url, **request_kwargs) as response:
+            response_text = await response.text()
+            print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Status {response.status}")
+
+            if response.status == 200:
+                if "已经选过" in response_text or not (any(word in response_text for word in failed_words) or any(word in response_text for word in error_words)):
+                    if "已经选过" in response_text:
+                        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Already selected.\n")
+                    else:
+                        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Selection Succeeded!\n")
+                    succeed_event.set()
+                    return True
+                elif any(word in response_text for word in failed_words):
+                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (reason: {response_text.strip()}).\n")
+                elif any(word in response_text for word in error_words):
+                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (error: {response_text.strip()}).\n")
+                else:
+                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: 200 OK, outcome unclear (response: {response_text.strip()}).\n")
             else:
-                print("Succeeded!\n")
-                succeed.set()
-        else:
-            print(response.status_code)
-            print("Non-200 return.\n")
+                print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Non-200 Status {response.status} (response: {response_text.strip()}).\n")
+
+    except asyncio.TimeoutError:
+        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Request timed out.\n")
+    except aiohttp.ClientError as e:
+        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Network ClientError: {e}\n")
     except Exception as e:
-        print(e)
-        print("Exception Occurred.\n")
+        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Exception: {e}\n")
+
     return False
 
 
-def repeat_selection():
-    while not succeed.is_set():
-        thread = threading.Thread(target=select_course)
-        thread.start()
-        time.sleep(0.5)
+async def run_course_selection_loop_for_user(
+    course_id_to_select: str,
+    user_label: str,
+    user_cookies: dict,
+    user_profile_id: str,
+):
+    """
+    Public function to be called by main.py for each course of each user.
+    Repeatedly attempts to select a course until successful.
+    """
+    succeed_event = asyncio.Event()
+    connector = None
 
+    user_params = {"profileId": user_profile_id}
 
-if __name__ == "__main__":
-    if len(sys.argv) < 2:
-        print("Missing parameter! Usage: python core.py <course_id>")
-        sys.exit(1)
-    if len(sys.argv) > 2:
-        print("Too many parameters! Usage: python core.py <course_id>")
-        sys.exit(1)
-    course_id = sys.argv[1]
-    data["operator0"] = f"{course_id}:true:0"
-    repeat_selection()
-    wait = input("The course selection has ended. Press any key and enter to exit.")
+    if USE_PROXY:
+        if ProxyConnector and "all" in proxies:
+            proxy_url_val = proxies["all"]
+            if proxy_url_val:
+                connector = ProxyConnector.from_url(proxy_url_val)
+            else:
+                print(f"Warning (User {user_label}, Course {course_id_to_select}): USE_PROXY is True, but proxy URL is empty. No proxy.")
+        elif not ProxyConnector:
+            print(f"Warning (User {user_label}, Course {course_id_to_select}): USE_PROXY is True, but aiohttp-socks not installed. No proxy.")
+        else:
+            print(f"Warning (User {user_label}, Course {course_id_to_select}): USE_PROXY is True, but 'all' proxy key missing. No proxy.")
+
+    async with aiohttp.ClientSession(connector=connector) as session:
+        attempt_count = 0
+        while not succeed_event.is_set():
+            attempt_count += 1
+            print(f"User {user_label} - Course ID {course_id_to_select}: Starting attempt {attempt_count}...")
+            await attempt_single_course_selection(
+                session,
+                course_id_to_select,
+                user_cookies,
+                user_params,
+                succeed_event,
+            )
+            if not succeed_event.is_set():
+                await asyncio.sleep(0.5)
+
+    print(f"User {user_label} - Course selection process for {course_id_to_select} has concluded.")
