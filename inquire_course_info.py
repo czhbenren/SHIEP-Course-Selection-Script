@@ -17,9 +17,9 @@ from custom import INQUIRY_USER_DATA
 warnings.simplefilter("ignore", InsecureRequestWarning)
 
 
-def fix_nonstandard_json(data_str: str):
+def fix_nonstandard_json(data_str: str) -> str:
     data_str = re.sub(r"(?<!\\)'", '"', data_str)
-    data_str = re.sub(r"(\b[a-zA-Z_]\w*\b)(?=\s*:)", r'"\1"', data_str)
+    data_str = re.sub(r"(?<=[{,])\s*([a-zA-Z_]\w*)\s*:", r'"\1":', data_str)
     return data_str
 
 
