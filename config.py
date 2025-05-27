@@ -12,7 +12,7 @@ headers = {
     "Connection": "keep-alive",
     "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
     "Origin": "https://jw.shiep.edu.cn",
-    "Referer": "https://jw.shiep.edu.cn/eams/stdElectCourse!defaultPage.action?electionProfile.id=1614",
+    "Referer": "https://jw.shiep.edu.cn/eams/stdElectCourse!defaultPage.action",
     "Sec-Fetch-Dest": "empty",
     "Sec-Fetch-Mode": "cors",
     "Sec-Fetch-Site": "same-origin",

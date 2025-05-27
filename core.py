@@ -33,7 +33,7 @@ async def attempt_single_course_selection(
         "cookies": user_cookies,
         "params": user_params,
         "data": current_data_payload,
-        "timeout": 3,
+        "timeout": 1,
         "ssl": False,  # disables SSL cert verification
     }
 
@@ -109,6 +109,6 @@ async def run_course_selection_loop_for_user(
                 succeed_event,
             )
             if not succeed_event.is_set():
-                await asyncio.sleep(0.5)
+                await asyncio.sleep(0.2)
 
     print(f"User {user_label} - Course selection process for {course_id_to_select} has concluded.")

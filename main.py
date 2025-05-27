@@ -7,9 +7,6 @@ from custom import USER_CONFIGS
 
 
 async def main_select_courses():
-    """
-    Handles the logic for selecting courses for all configured users.
-    """
     if not USER_CONFIGS:
         print("No user configurations found in custom.py. Exiting course selection.")
         return
@@ -49,16 +46,12 @@ async def main_select_courses():
 
 
 async def main():
-    """
-    Main application function.
-    """
-    task_choice = input("What do you want to do?\n[1] Select courses for all users\n[2] Inquire course info (synchronous)\nChoice: ").strip()
-
+    task_choice = input("What do you want to do?\n[1] Select courses for all users\n[2] Inquire course info\nChoice: ").strip()
     if task_choice == "1":
         await main_select_courses()
     elif task_choice == "2":
-        print("Running course info inquiry (this is a synchronous operation)...")
-        inquire_course_info_async()
+        print("Running course info inquiry...")
+        await inquire_course_info_async()
     else:
         print("Invalid choice.")
 

@@ -95,8 +95,17 @@ async def get_enrollment_data_async(session: aiohttp.ClientSession, inquiry_cook
 
 def filter_courses(courses: list, keyword: str, enrollments: dict):
     filtered_courses_list = []
+    # Check if keyword is in "key=value" format
+    if "=" in keyword:
+        key, value = keyword.split("=", 1)
+        key = key.strip().lower()
+        value = value.strip().lower()
+    else:
+        key = "name"  # Default to searching name
+        value = keyword.lower()
     for course in courses:
-        if keyword.lower() in course["name"].lower():
+        search_field = str(course.get(key, "")).lower()
+        if value in search_field:
             lesson_id = str(course["id"])
             sc = enrollments.get(lesson_id, {}).get("sc", "N/A")
             lc = enrollments.get(lesson_id, {}).get("lc", "N/A")
@@ -106,8 +115,8 @@ def filter_courses(courses: list, keyword: str, enrollments: dict):
                     "no": course["no"],
                     "name": course["name"],
                     "credits": course["credits"],
-                    "course_type": course["courseTypeName"],
-                    "teachers": course["teachers"],
+                    "type": course["type"],
+                    "teacher": course["teacher"],
                     "enrolled": sc,
                     "limit": lc,
                 }
@@ -151,6 +160,19 @@ async def inquire_course_info_async():
             print("Could not fetch course data. Exiting inquiry.")
             return
 
+        # Rename keys in course data
+        # print(list(courses[0].keys()))
+        key_mapping = {
+            "id": "id",
+            "no": "no",
+            "name": "name",
+            "credits": "credits",
+            "courseTypeName": "type",
+            "teachers": "teacher",
+        }
+        courses = [{new_key: course.get(old_key, "") for old_key, new_key in key_mapping.items()} for course in courses]
+        # print(list(courses[0].keys()))
+
         print("Fetching enrollment data...")
         enrollments = await get_enrollment_data_async(session, inquiry_cookies)
         if not enrollments:
@@ -159,20 +181,20 @@ async def inquire_course_info_async():
 
         print("\n--- Course Inquiry Ready ---")
         while True:
-            keyword = input("\nInput course name keyword (type 'q' to quit): ").strip()
+            keyword = input("\nInput course name keyword or 'key=value' to search by field ('q' to quit): ").strip()
             if keyword.lower() == "q":
                 print("Exiting course inquiry.")
                 break
 
             filtered = filter_courses(courses, keyword, enrollments)
             if filtered:
-                filtered.sort(key=lambda x: (x["course_type"], -x["credits"], x["id"]))
+                filtered.sort(key=lambda x: (x["type"], -x["credits"], x["id"]))
                 print("\nThe matching course information is as follows:")
                 for course_item in filtered:
                     print(
-                        f"ID: {course_item['id']}, No: {course_item['no']}, Type: {course_item['course_type']}, "
+                        f"ID: {course_item['id']}, No: {course_item['no']}, Type: {course_item['type']}, "
                         f"Credits: {course_item['credits']}, Enrolled: {course_item['enrolled']}/{course_item['limit']}, "
-                        f"Name: {course_item['name']}, Teacher: {course_item['teachers']}"
+                        f"Name: {course_item['name']}, Teacher: {course_item['teacher']}"
                     )
             else:
                 print("No matching course found.")
