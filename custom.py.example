@@ -8,9 +8,9 @@ USER_CONFIGS = [
         },
         "course_ids": [
             "COURSEID_A1",
-            "COURSEID_A2"
+            "COURSEID_A2",
         ],
-    }
+    },
 ]
 
 INQUIRY_USER_DATA = {

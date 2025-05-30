@@ -172,13 +172,13 @@ def add_course_to_config(label: str, course_id: str, profile_id: str, courses: l
         # Add the new course ID with proper formatting
         if before_end.endswith('"'):
             # If the last item ends with a quote, add a comma and the new ID
-            new_content = before_end + f',\n            "{course_id}"\n        ' + content[course_ids_end:]
+            new_content = before_end + f'\n            "{course_id}",\n        ' + content[course_ids_end:]
         else:
             # If there's already a comma or other formatting, just add the new ID
-            new_content = before_end + f'\n            "{course_id}"\n        ' + content[course_ids_end:]
+            new_content = before_end + f'\n            "{course_id}",\n        ' + content[course_ids_end:]
     else:
         # Create a new user config
-        new_config = f""",
+        new_config = f"""
     {{
         "label": "{label}",
         "profileId": "{profile_id}",
@@ -187,9 +187,9 @@ def add_course_to_config(label: str, course_id: str, profile_id: str, courses: l
             "SERVERNAME": "{INQUIRY_USER_DATA['cookies']['SERVERNAME']}",
         }},
         "course_ids": [
-            "{course_id}"
+            "{course_id}",
         ],
-    }}\n"""
+    }},\n"""
         
         # Insert the new config before the last bracket
         # 这里不知道为什么最后多了个换行符，导致json格式错误
