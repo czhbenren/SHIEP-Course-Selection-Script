@@ -3,7 +3,7 @@ from tqdm.asyncio import tqdm
 
 from core import run_course_selection_loop_for_user
 from inquire_course_info import inquire_course_info_async
-from custom import USER_CONFIGS
+from custom import USER_CONFIGS, INQUIRY_USER_DATA
 
 
 async def main_select_courses():
@@ -19,6 +19,11 @@ async def main_select_courses():
         user_cookies = user_config.get("cookies")
         user_profile_id = user_config.get("profileId")
         user_course_ids = user_config.get("course_ids", [])
+
+        if not user_cookies and not user_profile_id:
+            user_cookies = INQUIRY_USER_DATA.get("cookies")
+            user_profile_id = INQUIRY_USER_DATA.get("profileId")
+            print(f"Using inquiry user data for user '{user_label}'")
 
         if not all([user_cookies, user_profile_id, user_course_ids]):
             print(f"Warning: Skipping user '{user_label}' due to missing cookies, profileId, or course_ids.")
