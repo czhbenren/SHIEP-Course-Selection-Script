@@ -64,11 +64,12 @@ async def verify_cookie_validity():
     )
 
     for user_config in USER_CONFIGS:
-        user_label = user_config.get("label", "Unknown_User")
-        user_cookies = user_config.get("cookies")
-
-        task = check(label=user_label, cookies=user_cookies)
-        all_cookies_tasks.append(task)
+        all_cookies_tasks.append(
+            check(
+                label=user_config.get("label", "Unknown_User"),
+                cookies=user_config.get("cookies"),
+            )
+        )
 
     if not all_cookies_tasks:
         print("Cannot find any cookies.")
@@ -80,7 +81,7 @@ async def verify_cookie_validity():
     print("\nAll cookies verification tasks have been processed.")
     await asyncio.sleep(0.1)
 
-    invalid_results = []
+    invalid_results: list[CheckResult] = []
 
     for result in results:
         if not result.success:

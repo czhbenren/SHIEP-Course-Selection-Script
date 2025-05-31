@@ -51,6 +51,7 @@ async def check_course():
             return
 
         all_check_tasks = []
+        print("Collecting courses' id...")
 
         for user_config in USER_CONFIGS:
             user_label = user_config.get("label", "Unknown_User")
