@@ -3,7 +3,6 @@ import aiohttp
 from tqdm.asyncio import tqdm
 
 from inquire_course_info import get_enrollment_data
-from config import headers
 from custom import USE_PROXY, proxies, USER_CONFIGS, INQUIRY_USER_DATA
 
 try:

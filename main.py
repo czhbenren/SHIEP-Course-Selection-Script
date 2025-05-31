@@ -62,7 +62,7 @@ def display_help():
     print("  --start    : Select courses for all users")
     print("  --inquire  : Inquire course info")
     print("  --validate : Batch validate cookie validity")
-    print("  --spots    : Verify course availability")
+    print("  --check    : Verify course availability")
 
 
 async def main():
