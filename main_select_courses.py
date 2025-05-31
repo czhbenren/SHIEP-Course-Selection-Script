@@ -1,6 +1,8 @@
 import asyncio
 import aiohttp
 import warnings
+from collections import deque
+from tqdm.asyncio import tqdm
 from urllib3.exceptions import InsecureRequestWarning
 
 try:
@@ -9,7 +11,7 @@ except ImportError:
     ProxyConnector = None
 
 from config import url, headers, data as base_data_payload, failed_words, error_words
-from custom import USE_PROXY, proxies
+from custom import USE_PROXY, proxies, USER_CONFIGS
 
 warnings.simplefilter("ignore", InsecureRequestWarning)
 
@@ -20,7 +22,6 @@ async def attempt_single_course_selection(
     user_cookies: dict,
     user_params: dict,
     user_label: str,
-    succeed_event: asyncio.Event,
 ):
     """
     Makes a single attempt to select a course for a specific user.
@@ -42,7 +43,7 @@ async def attempt_single_course_selection(
 
     # print(f"\n{request_kwargs}\n")  # DEBUG
 
-    profileId = user_params.get('profileId', 'N/A')
+    profileId = user_params.get("profileId", "N/A")
 
     try:
         async with session.post(url, **request_kwargs) as response:
@@ -55,7 +56,6 @@ async def attempt_single_course_selection(
                         print(f"User {user_label} ({profileId}) - Course ID {course_id}: Already selected.\n")
                     else:
                         print(f"User {user_label} ({profileId}) - Course ID {course_id}: Selection Succeeded!\n")
-                    succeed_event.set()
                     return True
                 elif any(word in response_text for word in failed_words):
                     print(f"User {user_label} ({profileId}) - Course ID {course_id}: Failed (reason: {response_text.strip()}).\n")
@@ -83,53 +83,107 @@ async def attempt_single_course_selection(
     return False
 
 
-async def run_course_selection_loop_for_user(
-    course_id_to_select: str,
+async def run_loop_for_single_user(
     user_label: str,
     user_cookies: dict,
-    user_profile_id: str,
+    user_tables: list[dict],
 ):
-    """
-    Public function to be called by main.py for each course of each user.
-    Repeatedly attempts to select a course until successful.
-    """
-    succeed_event = asyncio.Event()
     connector = None
-
-    user_params = {"profileId": user_profile_id}
-
     if USE_PROXY:
         if ProxyConnector and "all" in proxies:
             proxy_url_val = proxies["all"]
             if proxy_url_val:
                 connector = ProxyConnector.from_url(proxy_url_val)
             else:
-                print(f"Warning (User {user_label}, Course {course_id_to_select}): USE_PROXY is True, but proxy URL is empty. No proxy.")
+                print(f"Warning (User {user_label}): USE_PROXY is True, but proxy URL is empty. No proxy.")
         elif not ProxyConnector:
-            print(f"Warning (User {user_label}, Course {course_id_to_select}): USE_PROXY is True, but aiohttp-socks not installed. No proxy.")
+            print(f"Warning (User {user_label}): USE_PROXY is True, but aiohttp-socks not installed. No proxy.")
         else:
-            print(f"Warning (User {user_label}, Course {course_id_to_select}): USE_PROXY is True, but 'all' proxy key missing. No proxy.")
+            print(f"Warning (User {user_label}): USE_PROXY is True, but 'all' proxy key missing. No proxy.")
 
     async with aiohttp.ClientSession(connector=connector) as session:
-        attempt_count = 0
-        failed_count = 0
-        while not succeed_event.is_set():
-            attempt_count += 1
-            print(f"User {user_label} - Course ID {course_id_to_select}: Starting attempt {attempt_count}...")
-            result = await attempt_single_course_selection(
-                session,
-                course_id_to_select,
-                user_cookies,
-                user_params,
-                user_label,
-                succeed_event,
-            )
-            if result is None:
-                failed_count += 1
-                if failed_count >= 3:
-                    print("\n--- Critical Error: Failure count reaches 3! stops attempts. ---\n")
-                    break
-            if not succeed_event.is_set():
-                await asyncio.sleep(0.2)
+        task_queue = deque()
+        task_data_map = {}
 
-    print(f"User {user_label} - Course selection process for {course_id_to_select} has concluded.")
+        for table in user_tables:
+            profileId = table.get("profileId")
+            course_ids = table.get("course_ids", [])
+            if not all([profileId, course_ids]):
+                print(f"Missing parameter in {user_label}'s table")
+                continue
+
+            for course_id in course_ids:
+                task_key = (profileId, course_id)
+                task_data = {
+                    "session": session,
+                    "course_id": course_id,
+                    "user_cookies": user_cookies,
+                    "user_params": {"profileId": profileId},
+                    "user_label": user_label,
+                }
+                task_queue.append(task_key)
+                task_data_map[task_key] = task_data
+
+        if not task_queue:
+            print(f"No valid tasks found for user: {user_label}. Exiting selection process.")
+            return
+
+        print(f"\nStarting selection for {len(task_queue)} course(s) for user {user_label}...\n")
+
+        while True:
+            task_key = task_queue.popleft()
+            task_data: dict = task_data_map[task_key]
+            success = await attempt_single_course_selection(**task_data)
+
+            if success is None:
+                print(f"Failed completely - [{task_key[1]}] of {task_data.get(user_label)}")
+                del task_data_map[task_key]
+            else:
+                if success:
+                    del task_data_map[task_key]
+                else:
+                    if task_queue:
+                        top_task = task_queue.popleft()
+                        task_queue.appendleft(task_key)
+                        task_queue.appendleft(top_task)
+                    else:
+                        task_queue.append(task_key)
+
+            if task_queue:
+                await asyncio.sleep(0.2)
+            else:
+                break
+
+    print(f"User {user_label} - Course selection processes has concluded.")
+
+
+async def main_select_courses():
+    if not USER_CONFIGS:
+        print("No user configurations found in custom.py. Exiting course selection.")
+        return
+
+    peer_selection_tasks = []
+    print("Preparing course selection tasks for all users...")
+
+    for peer_config in USER_CONFIGS:
+        user_label = peer_config.get("label", "Unknown_User")
+        user_cookies = peer_config.get("cookies")
+        user_tables = peer_config.get("tables")
+
+        if not user_cookies:
+            print(f"Cannot get user {user_label}'s cookies. Skip...")
+            continue
+
+        peer_selection_tasks.append(
+            run_loop_for_single_user(
+                user_label=user_label,
+                user_cookies=user_cookies,
+                user_tables=user_tables,
+            )
+        )
+
+    print(f"\nStarting selection for {len(peer_selection_tasks)} user(s)...\n")
+    await tqdm.gather(*peer_selection_tasks, desc="Total Course Selection Progress")
+
+    print("\nAll course selection tasks have been processed.")
+    await asyncio.sleep(0.1)  # Add a small delay to ensure all print statements from tasks are flushed
