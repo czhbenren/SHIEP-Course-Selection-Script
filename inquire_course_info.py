@@ -39,8 +39,8 @@ def parse_course_json(data_str: str):
             sys.exit(1)
 
 
-async def get_course_data_async(session: aiohttp.ClientSession, profile_id_to_use: str, inquiry_cookies: dict):
-    url = f"https://jw.shiep.edu.cn/eams/stdElectCourse!data.action?profileId={profile_id_to_use}"
+async def get_course_data(session: aiohttp.ClientSession, profile_id: str, inquiry_cookies: dict):
+    url = f"https://jw.shiep.edu.cn/eams/stdElectCourse!data.action?profileId={profile_id}"
     try:
         async with session.get(
             url=url,
@@ -62,11 +62,11 @@ async def get_course_data_async(session: aiohttp.ClientSession, profile_id_to_us
         print(f"Failed to retrieve course data due to client error: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"An unexpected error occurred in get_course_data_async: {e}")
+        print(f"An unexpected error occurred in get_course_data: {e}")
         sys.exit(1)
 
 
-async def get_enrollment_data_async(session: aiohttp.ClientSession, inquiry_cookies: dict):
+async def get_enrollment_data(session: aiohttp.ClientSession, inquiry_cookies: dict):
     base_url = "https://jw.shiep.edu.cn/eams/stdElectCourse!queryStdCount.action"
     try:
         async with session.get(
@@ -89,7 +89,7 @@ async def get_enrollment_data_async(session: aiohttp.ClientSession, inquiry_cook
         print(f"Failed to retrieve enrollment data due to client error: {e}")
         sys.exit(1)
     except Exception as e:
-        print(f"An unexpected error occurred in get_enrollment_data_async: {e}")
+        print(f"An unexpected error occurred in get_enrollment_data: {e}")
         sys.exit(1)
 
 
@@ -200,7 +200,7 @@ def add_course_to_config(label: str, course_id: str, profile_id: str, courses: l
     return True
 
 
-async def inquire_course_info_async():
+async def inquire_course_info():
     connector = None
     if USE_PROXY:
         if ProxyConnector and "all" in proxies:
@@ -221,17 +221,14 @@ async def inquire_course_info_async():
             print("Error: Inquiry cookies not found in custom.py (INQUIRY_USER_DATA). Please configure them.")
             return
 
-        profile_id_to_use = ""
-        while True:
-            prompt_message = "Input profileId for inquiry (cannot be empty): "
-            profile_id_to_use = input(prompt_message).strip()
-            if profile_id_to_use:
-                break
-            else:
-                print("Error: profileId cannot be empty. Please enter a valid profileId.")
+        profile_id = INQUIRY_USER_DATA.get("profileId")
 
-        print(f"Fetching course data for profileId: {profile_id_to_use}...")
-        courses = await get_course_data_async(session, profile_id_to_use, inquiry_cookies)
+        if not profile_id:
+            print("Error: profileId cannot be empty.")
+            return
+
+        print(f"Fetching course data for profileId: {profile_id}...")
+        courses = await get_course_data(session, profile_id, inquiry_cookies)
         if not courses:
             print("Could not fetch course data. Exiting inquiry.")
             return
@@ -248,7 +245,7 @@ async def inquire_course_info_async():
         courses = [{new_key: course.get(old_key, "") for old_key, new_key in key_mapping.items()} for course in courses]
 
         print("Fetching enrollment data...")
-        enrollments = await get_enrollment_data_async(session, inquiry_cookies)
+        enrollments = await get_enrollment_data(session, inquiry_cookies)
         if not enrollments:
             print("Could not fetch enrollment data. Exiting inquiry.")
             return
@@ -283,7 +280,7 @@ async def inquire_course_info_async():
                             # If there's only one course, use it directly
                             course_id = str(filtered[0]["id"])
                             print(f"Automatically using the only matching course ID: {course_id}")
-                            add_course_to_config(label, course_id, profile_id_to_use, courses)
+                            add_course_to_config(label, course_id, profile_id, courses)
                         else:
                             # If there are multiple courses, ask for the course ID
                             course_id = input("Enter the course ID to add (or 'all' to add all matching courses): ").strip()
@@ -295,11 +292,11 @@ async def inquire_course_info_async():
                                 # Add all matching courses
                                 success_count = 0
                                 for course in filtered:
-                                    if add_course_to_config(label, str(course["id"]), profile_id_to_use, courses):
+                                    if add_course_to_config(label, str(course["id"]), profile_id, courses):
                                         success_count += 1
                                 print(f"Successfully added {success_count} out of {len(filtered)} courses for user {label}")
                             else:
-                                add_course_to_config(label, course_id, profile_id_to_use, courses)
+                                add_course_to_config(label, course_id, profile_id, courses)
                     case _:
                         pass
             else:
@@ -312,7 +309,7 @@ if __name__ == "__main__":
     print("Ensure INQUIRY_USER_DATA in custom.py is correctly set (cookies).")
     print("Ensure ENROLLMENT_DATA_API_PARAMS in config.py is correctly set.")
     try:
-        asyncio.run(inquire_course_info_async())
+        asyncio.run(inquire_course_info())
     except KeyboardInterrupt:
         print("\nInquiry test interrupted by user.")
     finally:

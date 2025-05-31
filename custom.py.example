@@ -16,6 +16,7 @@ USER_CONFIGS = [
 
 INQUIRY_USER_DATA = {
     "label": "DefaultInquiryUser",
+    "profileId": "114514",
     "cookies": {  # Ensure these are filled
         "JSESSIONID": "YOUR_INQUIRY_JSESSIONID_HERE",
         "SERVERNAME": "YOUR_INQUIRY_SERVERNAME_HERE",

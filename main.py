@@ -1,8 +1,9 @@
+import sys
 import asyncio
 from tqdm.asyncio import tqdm
 
 from core import run_course_selection_loop_for_user
-from inquire_course_info import inquire_course_info_async
+from inquire_course_info import inquire_course_info
 from custom import USER_CONFIGS, INQUIRY_USER_DATA
 
 
@@ -50,15 +51,35 @@ async def main_select_courses():
     await asyncio.sleep(0.1)  # Add a small delay to ensure all print statements from tasks are flushed
 
 
+def display_help():
+    """
+    Show Commands
+    """
+    print("Usage: python main.py <command>")
+    print("Commands:")
+    print("  --start    : Select courses for all users")
+    print("  --inquire  : Inquire course info")
+    print("  --validate : Batch validate cookie validity")
+    print("  --spots    : Verify course availability")
+
+
 async def main():
-    task_choice = input("What do you want to do?\n[1] Select courses for all users\n[2] Inquire course info\nChoice: ").strip()
-    if task_choice == "1":
-        await main_select_courses()
-    elif task_choice == "2":
-        print("Running course info inquiry...")
-        await inquire_course_info_async()
-    else:
-        print("Invalid choice.")
+    if len(sys.argv) < 2:
+        display_help()
+        return
+
+    match sys.argv[1].lower():  # Only use the first argument
+        case "--start":
+            await main_select_courses()
+        case "--inquire":
+            await inquire_course_info()
+        case "--validate":
+            pass
+        case "--check":
+            pass
+        case _:
+            print("Error: Unknown command.")
+            display_help()
 
 
 if __name__ == "__main__":

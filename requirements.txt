@@ -1,4 +1,4 @@
-aiohttp==3.12.2
-aiohttp_socks==0.10.1
-tqdm==4.67.1
-urllib3==2.4.0
+aiohttp
+aiohttp_socks
+tqdm
+urllib3
