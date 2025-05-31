@@ -48,6 +48,7 @@ async def get_course_data(session: aiohttp.ClientSession, profile_id: str, inqui
             cookies=inquiry_cookies,
             timeout=10,
             ssl=False,
+            allow_redirects=False,
         ) as response:
             response.raise_for_status()
             raw_data = await response.text(encoding="utf-8")
@@ -76,6 +77,7 @@ async def get_enrollment_data(session: aiohttp.ClientSession, inquiry_cookies: d
             params=ENROLLMENT_DATA_API_PARAMS,
             timeout=10,
             ssl=False,
+            allow_redirects=False,
         ) as response:
             response.raise_for_status()
             raw_data = await response.text(encoding="utf-8")
@@ -267,10 +269,11 @@ async def inquire_course_info():
                         f"Credits: {course_item['credits']}, Enrolled: {course_item['enrolled']}/{course_item['limit']}, "
                         f"Name: {course_item['name']}, Teacher: {course_item['teacher']}"
                     )
+                print(f"{len(filtered)} matching courses in total.\n")
 
                 # Ask if user wants to add a course to USER_CONFIGS
-                match input("\nDo you want to add one or all course filtered to USER_CONFIGS? (Y/n): ").strip().upper():
-                    case "Y" | "":
+                match input("\nDo you want to add one or all course filtered to USER_CONFIGS? (y/N): ").strip().upper():
+                    case "Y":
                         label = input("Enter the label for the new user config: ").strip()
                         if not label:
                             print("Failed to add: Label cannot be empty.")

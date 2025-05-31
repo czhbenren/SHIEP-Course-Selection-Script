@@ -16,9 +16,10 @@ warnings.simplefilter("ignore", InsecureRequestWarning)
 
 async def attempt_single_course_selection(
     session: aiohttp.ClientSession,
-    course_id_to_select: str,
+    course_id: str,
     user_cookies: dict,
     user_params: dict,
+    user_label: str,
     succeed_event: asyncio.Event,
 ):
     """
@@ -27,7 +28,7 @@ async def attempt_single_course_selection(
     """
 
     current_data_payload = base_data_payload.copy()
-    current_data_payload["operator0"] = f"{course_id_to_select}:true:0"
+    current_data_payload["operator0"] = f"{course_id}:true:0"
 
     request_kwargs = {
         "headers": headers,
@@ -36,42 +37,48 @@ async def attempt_single_course_selection(
         "data": current_data_payload,
         "timeout": 1,
         "ssl": False,  # disables SSL cert verification
+        "allow_redirects": False,
     }
 
     # print(f"\n{request_kwargs}\n")  # DEBUG
 
+    profileId = user_params.get('profileId', 'N/A')
+
     try:
         async with session.post(url, **request_kwargs) as response:
             response_text = await response.text()
-            print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Status {response.status}")
+            print(f"User {user_label} ({profileId}) - Course ID {course_id}: Status {response.status}")
 
             if response.status == 200:
                 if "已经选过" in response_text or not (any(word in response_text for word in failed_words) or any(word in response_text for word in error_words)):
                     if "已经选过" in response_text:
-                        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Already selected.\n")
+                        print(f"User {user_label} ({profileId}) - Course ID {course_id}: Already selected.\n")
                     else:
-                        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Selection Succeeded!\n")
+                        print(f"User {user_label} ({profileId}) - Course ID {course_id}: Selection Succeeded!\n")
                     succeed_event.set()
                     return True
                 elif any(word in response_text for word in failed_words):
-                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (reason: {response_text.strip()}).\n")
+                    print(f"User {user_label} ({profileId}) - Course ID {course_id}: Failed (reason: {response_text.strip()}).\n")
+                    return None
                 elif "当前选课不开放" in response_text:
-                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (error: 操作失败:当前选课不开放).\n")
+                    print(f"User {user_label} ({profileId}) - Course ID {course_id}: Failed (error: 操作失败:当前选课不开放).\n")
                 elif "请不要过快点击" in response_text:
-                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (error: 请不要过快点击).\n")
+                    print(f"User {user_label} ({profileId}) - Course ID {course_id}: Failed (error: 请不要过快点击).\n")
                 elif any(word in response_text for word in error_words):
-                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (error: {response_text.strip()}).\n")
+                    print(f"User {user_label} ({profileId}) - Course ID {course_id}: Failed (error: {response_text.strip()}).\n")
                 else:
-                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: 200 OK, outcome unclear (response: {response_text.strip()}).\n")
+                    print(f"User {user_label} ({profileId}) - Course ID {course_id}: 200 OK, outcome unclear (response: {response_text.strip()}).\n")
+            elif response.status == 302:
+                print(f"User {user_label} ({profileId}) - Course ID {course_id}: Non-200 Status 302. Please check your cookies!!!\n")
             else:
-                print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Non-200 Status {response.status} (response: {response_text.strip()}).\n")
+                print(f"User {user_label} ({profileId}) - Course ID {course_id}: Non-200 Status {response.status} (response: {response_text.strip()}).\n")
 
     except asyncio.TimeoutError:
-        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Request timed out.\n")
+        print(f"User {user_label} ({profileId}) - Course ID {course_id}: Request timed out.\n")
     except aiohttp.ClientError as e:
-        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Network ClientError: {e}\n")
+        print(f"User {user_label} ({profileId}) - Course ID {course_id}: Network ClientError: {e}\n")
     except Exception as e:
-        print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Exception: {e}\n")
+        print(f"User {user_label} ({profileId}) - Course ID {course_id}: Exception: {e}\n")
 
     return False
 
@@ -105,16 +112,23 @@ async def run_course_selection_loop_for_user(
 
     async with aiohttp.ClientSession(connector=connector) as session:
         attempt_count = 0
+        failed_count = 0
         while not succeed_event.is_set():
             attempt_count += 1
             print(f"User {user_label} - Course ID {course_id_to_select}: Starting attempt {attempt_count}...")
-            await attempt_single_course_selection(
+            result = await attempt_single_course_selection(
                 session,
                 course_id_to_select,
                 user_cookies,
                 user_params,
+                user_label,
                 succeed_event,
             )
+            if result is None:
+                failed_count += 1
+                if failed_count >= 3:
+                    print("\n--- Critical Error: Failure count reaches 3! stops attempts. ---\n")
+                    break
             if not succeed_event.is_set():
                 await asyncio.sleep(0.2)
 

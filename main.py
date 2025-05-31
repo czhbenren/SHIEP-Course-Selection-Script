@@ -4,6 +4,8 @@ from tqdm.asyncio import tqdm
 
 from core import run_course_selection_loop_for_user
 from inquire_course_info import inquire_course_info
+from verify_cookie_validity import verify_cookie_validity
+from check_course import check_course
 from custom import USER_CONFIGS, INQUIRY_USER_DATA
 
 
@@ -74,9 +76,9 @@ async def main():
         case "--inquire":
             await inquire_course_info()
         case "--validate":
-            pass
+            await verify_cookie_validity()
         case "--check":
-            pass
+            await check_course()
         case _:
             print("Error: Unknown command.")
             display_help()
