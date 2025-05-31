@@ -11,6 +11,7 @@ USER_CONFIGS = [
             "COURSEID_A2",
         ],
     },
+    # ... other user configs for selection ...
 ]
 
 INQUIRY_USER_DATA = {

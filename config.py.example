@@ -1,4 +1,4 @@
-USE_PROXY = False  # Set to False to disable proxies globally
+USE_PROXY = False  # Set to True to enable proxies globally
 
 proxies = {
     "all": "socks5://127.0.0.1:10114",

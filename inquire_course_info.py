@@ -124,49 +124,46 @@ def filter_courses(courses: list, keyword: str, enrollments: dict):
     return filtered_courses_list
 
 
-def check_course_exists(course_id: str, courses: list) -> bool:
-    """Check if a course ID exists in the query results."""
-    return any(str(course["id"]) == course_id for course in courses)
-
-
 def add_course_to_config(label: str, course_id: str, profile_id: str, courses: list):
-    """Add a course to USER_CONFIGS if it exists in the query results."""
-    if not check_course_exists(course_id, courses):
+    """
+    Add a course to USER_CONFIGS if it exists in the query results.
+    """
+    if not any(str(course["id"]) == course_id for course in courses):
         print(f"Error: Course ID {course_id} not found in the query results.")
         return False
-    
+
     # Read the current custom.py content
     with open("custom.py", "r", encoding="utf-8") as f:
         content = f.read()
-    
+
     # Find the last closing bracket of USER_CONFIGS
     last_bracket_pos = content.rfind("]")
     if last_bracket_pos == -1:
         print("Error: Could not find USER_CONFIGS in custom.py")
         return False
-    
+
     # Check if a config with this label already exists
     label_pattern = f'"label": "{label}"'
     label_pos = content.find(label_pattern)
-    
+
     if label_pos != -1:
         # Find the course_ids list for this label
         course_ids_start = content.find('"course_ids": [', label_pos)
         if course_ids_start == -1:
             print(f"Error: Could not find course_ids list for label {label}")
             return False
-        
+
         # Find the closing bracket of the course_ids list
-        course_ids_end = content.find(']', course_ids_start)
+        course_ids_end = content.find("]", course_ids_start)
         if course_ids_end == -1:
             print(f"Error: Could not find end of course_ids list for label {label}")
             return False
-        
+
         # Check if the course ID already exists
         if course_id in content[course_ids_start:course_ids_end]:
             print(f"Error: Course ID {course_id} already exists for label {label}")
             return False
-        
+
         # Get the content before the closing bracket
         before_end = content[:course_ids_end].rstrip()
         # Add the new course ID with proper formatting
@@ -183,22 +180,22 @@ def add_course_to_config(label: str, course_id: str, profile_id: str, courses: l
         "label": "{label}",
         "profileId": "{profile_id}",
         "cookies": {{
-            "JSESSIONID": "{INQUIRY_USER_DATA['cookies']['JSESSIONID']}",
-            "SERVERNAME": "{INQUIRY_USER_DATA['cookies']['SERVERNAME']}",
+            "JSESSIONID": "{INQUIRY_USER_DATA["cookies"]["JSESSIONID"]}",
+            "SERVERNAME": "{INQUIRY_USER_DATA["cookies"]["SERVERNAME"]}",
         }},
         "course_ids": [
             "{course_id}",
         ],
     }},\n"""
-        
+
         # Insert the new config before the last bracket
         # 这里不知道为什么最后多了个换行符，导致json格式错误
-        new_content = content[:last_bracket_pos - 1] + new_config + content[last_bracket_pos:]
-    
+        new_content = content[: last_bracket_pos - 1] + new_config + content[last_bracket_pos:]
+
     # Write back to custom.py
     with open("custom.py", "w", encoding="utf-8") as f:
         f.write(new_content)
-    
+
     print(f"Successfully added course {course_id} for user {label}")
     return True
 
@@ -258,8 +255,8 @@ async def inquire_course_info_async():
 
         print("\n--- Course Inquiry Ready ---")
         while True:
-            keyword = input("\nInput course name keyword or 'key=value' to search by field ('q' to quit): ").strip()
-            if keyword.lower() == "q":
+            keyword = input("\nInput course name keyword or 'key=value' to search by field ('q' to quit): ").strip().lower()
+            if keyword == "q":
                 print("Exiting course inquiry.")
                 break
 
@@ -273,36 +270,38 @@ async def inquire_course_info_async():
                         f"Credits: {course_item['credits']}, Enrolled: {course_item['enrolled']}/{course_item['limit']}, "
                         f"Name: {course_item['name']}, Teacher: {course_item['teacher']}"
                     )
-                
+
                 # Ask if user wants to add a course to USER_CONFIGS
-                add_course = input("\nDo you want to add a course to USER_CONFIGS? (yes/no): ").strip().lower()
-                if add_course == "yes":
-                    label = input("Enter the label for the new user config: ").strip()
-                    if not label:
-                        print("Error: Label cannot be empty.")
-                        continue
-                    
-                    if len(filtered) == 1:
-                        # If there's only one course, use it directly
-                        course_id = str(filtered[0]["id"])
-                        print(f"Automatically using the only matching course ID: {course_id}")
-                        add_course_to_config(label, course_id, profile_id_to_use, courses)
-                    else:
-                        # If there are multiple courses, ask for the course ID
-                        course_id = input("Enter the course ID to add (or 'all' to add all matching courses): ").strip()
-                        if not course_id:
-                            print("Error: Course ID cannot be empty.")
+                match input("\nDo you want to add one or all course filtered to USER_CONFIGS? (Y/n): ").strip().upper():
+                    case "Y" | "":
+                        label = input("Enter the label for the new user config: ").strip()
+                        if not label:
+                            print("Failed to add: Label cannot be empty.")
                             continue
-                        
-                        if course_id.lower() == "all":
-                            # Add all matching courses
-                            success_count = 0
-                            for course in filtered:
-                                if add_course_to_config(label, str(course["id"]), profile_id_to_use, courses):
-                                    success_count += 1
-                            print(f"Successfully added {success_count} out of {len(filtered)} courses for user {label}")
-                        else:
+
+                        if len(filtered) == 1:
+                            # If there's only one course, use it directly
+                            course_id = str(filtered[0]["id"])
+                            print(f"Automatically using the only matching course ID: {course_id}")
                             add_course_to_config(label, course_id, profile_id_to_use, courses)
+                        else:
+                            # If there are multiple courses, ask for the course ID
+                            course_id = input("Enter the course ID to add (or 'all' to add all matching courses): ").strip()
+                            if not course_id:
+                                print("Error: Course ID cannot be empty.")
+                                continue
+
+                            if course_id.lower() == "all":
+                                # Add all matching courses
+                                success_count = 0
+                                for course in filtered:
+                                    if add_course_to_config(label, str(course["id"]), profile_id_to_use, courses):
+                                        success_count += 1
+                                print(f"Successfully added {success_count} out of {len(filtered)} courses for user {label}")
+                            else:
+                                add_course_to_config(label, course_id, profile_id_to_use, courses)
+                    case _:
+                        pass
             else:
                 print("No matching course found.")
         print("--- Course Inquiry Ended ---")

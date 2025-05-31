@@ -20,10 +20,10 @@ async def main_select_courses():
         user_profile_id = user_config.get("profileId")
         user_course_ids = user_config.get("course_ids", [])
 
-        if not user_cookies and not user_profile_id:
+        if not user_cookies or not user_profile_id:
             user_cookies = INQUIRY_USER_DATA.get("cookies")
             user_profile_id = INQUIRY_USER_DATA.get("profileId")
-            print(f"Using inquiry user data for user '{user_label}'")
+            print(f"Warning: Using inquiry user data for user '{user_label}' due to missing cookies or profileId.")
 
         if not all([user_cookies, user_profile_id, user_course_ids]):
             print(f"Warning: Skipping user '{user_label}' due to missing cookies, profileId, or course_ids.")
