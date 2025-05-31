@@ -11,8 +11,8 @@ try:
 except ImportError:
     ProxyConnector = None
 
-from config import headers, proxies, USE_PROXY, ENROLLMENT_DATA_API_PARAMS
-from custom import INQUIRY_USER_DATA
+from config import headers
+from custom import USE_PROXY, proxies, INQUIRY_USER_DATA, ENROLLMENT_DATA_API_PARAMS
 
 warnings.simplefilter("ignore", InsecureRequestWarning)
 

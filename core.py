@@ -8,7 +8,8 @@ try:
 except ImportError:
     ProxyConnector = None
 
-from config import url, headers, data as base_data_payload, proxies, failed_words, error_words, USE_PROXY
+from config import url, headers, data as base_data_payload, failed_words, error_words
+from custom import USE_PROXY, proxies
 
 warnings.simplefilter("ignore", InsecureRequestWarning)
 
@@ -37,6 +38,8 @@ async def attempt_single_course_selection(
         "ssl": False,  # disables SSL cert verification
     }
 
+    # print(f"\n{request_kwargs}\n")  # DEBUG
+
     try:
         async with session.post(url, **request_kwargs) as response:
             response_text = await response.text()
@@ -52,6 +55,10 @@ async def attempt_single_course_selection(
                     return True
                 elif any(word in response_text for word in failed_words):
                     print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (reason: {response_text.strip()}).\n")
+                elif "当前选课不开放" in response_text:
+                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (error: 操作失败:当前选课不开放).\n")
+                elif "请不要过快点击" in response_text:
+                    print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (error: 请不要过快点击).\n")
                 elif any(word in response_text for word in error_words):
                     print(f"User ({user_params.get('profileId', 'N/A')}) - Course ID {course_id_to_select}: Failed (error: {response_text.strip()}).\n")
                 else:

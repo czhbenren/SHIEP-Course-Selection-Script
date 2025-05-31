@@ -1,3 +1,9 @@
+USE_PROXY = False  # Set to True to enable proxies globally
+
+proxies = {
+    "all": "socks5://127.0.0.1:10114",
+}
+
 USER_CONFIGS = [
     {
         "label": "User_Alice",
@@ -21,4 +27,9 @@ INQUIRY_USER_DATA = {
         "JSESSIONID": "YOUR_INQUIRY_JSESSIONID_HERE",
         "SERVERNAME": "YOUR_INQUIRY_SERVERNAME_HERE",
     },
+}
+
+ENROLLMENT_DATA_API_PARAMS = {
+    "projectId": "1",
+    "semesterId": "384",
 }
