@@ -90,9 +90,6 @@ This is a script for automating the SHIEP course registration system, supporting
   - Alternatively, visit the course system URL: `https://jw.shiep.edu.cn/eams/stdElectCourse!data.action?profileId=<your_profile_id>` to view the returned course data.
 - **How to Obtain `profileId`**:
   - Retrieve it from the above URL or the personal page in the course system, ensuring it matches the cookies.
-
-### 3. Configure `config.py`
-
 - **Proxy Settings**:
   - If using the **official EasyConnect VPN** to connect to the campus network, no proxy is needed. Set:
     ```python
@@ -115,7 +112,7 @@ This is a script for automating the SHIEP course registration system, supporting
   ```
   - Ensure `projectId` and `semesterId` match the current semester, obtainable from course system requests.
 
-### 4. Run the Script
+### 3. Run the Script
 
 - Run in the terminal:
   ```bash
@@ -132,7 +129,7 @@ This is a script for automating the SHIEP course registration system, supporting
   python main.py --inquire  # Query courses
   ```
 
-### 5. Stop the Script
+### 4. Stop the Script
 
 - Press `Ctrl+C` to interrupt the script at any time. The program will display “Program interrupted by user” and exit safely.
 
