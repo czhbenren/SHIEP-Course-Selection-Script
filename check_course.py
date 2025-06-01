@@ -55,15 +55,17 @@ async def check_course():
 
         for user_config in USER_CONFIGS:
             user_label = user_config.get("label", "Unknown_User")
-            user_course_ids = user_config.get("course_ids", [])
-            for course_id in user_course_ids:
-                all_check_tasks.append(
-                    check(
-                        label=user_label,
-                        id=course_id,
-                        enrollments=enrollments,
+            user_tables = user_config.get("tables", [])
+            for user_table in user_tables:
+                user_course_ids = user_table.get("course_ids", [])
+                for course_id in user_course_ids:
+                    all_check_tasks.append(
+                        check(
+                            label=user_label,
+                            id=course_id,
+                            enrollments=enrollments,
+                        )
                     )
-                )
 
         if not all_check_tasks:
             print("Cannot find any course to check.")

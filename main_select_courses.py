@@ -105,24 +105,27 @@ async def run_loop_for_single_user(
         task_queue = deque()
         task_data_map = {}
 
-        for table in user_tables:
-            profileId = table.get("profileId")
-            course_ids = table.get("course_ids", [])
-            if not all([profileId, course_ids]):
-                print(f"Missing parameter in {user_label}'s table")
-                continue
-
-            for course_id in course_ids:
-                task_key = (profileId, course_id)
-                task_data = {
-                    "session": session,
-                    "course_id": course_id,
-                    "user_cookies": user_cookies,
-                    "user_params": {"profileId": profileId},
-                    "user_label": user_label,
-                }
-                task_queue.append(task_key)
-                task_data_map[task_key] = task_data
+        # Interleaved append tasks
+        max_length = max(len(table.get("course_ids", [])) for table in user_tables if table.get("profileId")) or 0
+        for i in range(max_length):
+            for table in user_tables:
+                profileId = table.get("profileId")
+                course_ids = table.get("course_ids", [])
+                if not profileId or not course_ids:
+                    print(f"Missing parameter in {user_label}'s table: profileId={profileId}, course_ids={course_ids}")
+                    continue
+                if i < len(course_ids):
+                    course_id = course_ids[i]
+                    task_key = (profileId, course_id)
+                    task_data = {
+                        "session": session,
+                        "course_id": course_id,
+                        "user_cookies": user_cookies,
+                        "user_params": {"profileId": profileId},
+                        "user_label": user_label,
+                    }
+                    task_queue.append(task_key)
+                    task_data_map[task_key] = task_data
 
         if not task_queue:
             print(f"No valid tasks found for user: {user_label}. Exiting selection process.")
