@@ -39,7 +39,7 @@ def parse_course_json(data_str: str):
             sys.exit(1)
 
 
-async def get_course_data(session: aiohttp.ClientSession, profile_id: str, inquiry_cookies: dict):
+async def get_course_data(session: aiohttp.ClientSession, profile_id: str, inquiry_cookies: dict) -> list:
     url = f"https://jw.shiep.edu.cn/eams/stdElectCourse!data.action?profileId={profile_id}"
     try:
         async with session.get(
@@ -223,16 +223,25 @@ async def inquire_course_info():
             print("Error: Inquiry cookies not found in custom.py (INQUIRY_USER_DATA). Please configure them.")
             return
 
-        profile_id = INQUIRY_USER_DATA.get("profileId")
+        profile_ids: list = INQUIRY_USER_DATA.get("profileId")
 
-        if not profile_id:
-            print("Error: profileId cannot be empty.")
+        if not profile_ids:
+            print("Error: profileId list cannot be empty.")
             return
 
-        print(f"Fetching course data for profileId: {profile_id}...")
-        courses = await get_course_data(session, profile_id, inquiry_cookies)
-        if not courses:
-            print("Could not fetch course data. Exiting inquiry.")
+        all_courses = []
+        print(f"Fetching course data for profileIds: {profile_ids}...")
+
+        for profile_id in profile_ids:
+            print(f"Fetching course data for profileId: {profile_id}...")
+            courses = await get_course_data(session, profile_id, inquiry_cookies)
+            if not courses:
+                print(f"Could not fetch course data for profileId: {profile_id}. Skipping.")
+                continue
+            all_courses.extend(courses)
+
+        if not all_courses:
+            print("Could not fetch any course data. Exiting inquiry.")
             return
 
         # Rename keys in course data
@@ -244,7 +253,7 @@ async def inquire_course_info():
             "courseTypeName": "type",
             "teachers": "teacher",
         }
-        courses = [{new_key: course.get(old_key, "") for old_key, new_key in key_mapping.items()} for course in courses]
+        all_courses = [{new_key: course.get(old_key, "") for old_key, new_key in key_mapping.items()} for course in all_courses]
 
         print("Fetching enrollment data...")
         enrollments = await get_enrollment_data(session, inquiry_cookies)
@@ -259,7 +268,7 @@ async def inquire_course_info():
                 print("Exiting course inquiry.")
                 break
 
-            filtered = filter_courses(courses, keyword, enrollments)
+            filtered = filter_courses(all_courses, keyword, enrollments)
             if filtered:
                 filtered.sort(key=lambda x: (x["type"], -x["credits"], x["id"]))
                 print("\nThe matching course information is as follows:")
@@ -284,7 +293,7 @@ async def inquire_course_info():
                             # If there's only one course, use it directly
                             course_id = str(filtered[0]["id"])
                             print(f"Automatically using the only matching course ID: {course_id}")
-                            add_course_to_config(label, course_id, profile_id, courses)
+                            add_course_to_config(label, course_id, profile_id, all_courses)
                         else:
                             # If there are multiple courses, ask for the course ID
                             course_id = input("Enter the course ID to add (or 'all' to add all matching courses): ").strip()
@@ -296,11 +305,11 @@ async def inquire_course_info():
                                 # Add all matching courses
                                 success_count = 0
                                 for course in filtered:
-                                    if add_course_to_config(label, str(course["id"]), profile_id, courses):
+                                    if add_course_to_config(label, str(course["id"]), profile_id, all_courses):
                                         success_count += 1
                                 print(f"Successfully added {success_count} out of {len(filtered)} courses for user {label}")
                             else:
-                                add_course_to_config(label, course_id, profile_id, courses)
+                                add_course_to_config(label, course_id, profile_id, all_courses)
                     case _:
                         pass
             else:
