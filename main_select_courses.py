@@ -71,6 +71,7 @@ async def attempt_single_course_selection(
             elif response.status == 302:
                 print(f"User {user_label} ({profileId}) - Course ID {course_id}: Non-200 Status 302. Please check your cookies!!!")
                 print(f"Status 302 redirecting to {response.headers.get('Location')}\n")
+                return "redirect"
             else:
                 print(f"User {user_label} ({profileId}) - Course ID {course_id}: Non-200 Status {response.status} (response: {response_text.strip()}).\n")
 
@@ -143,7 +144,7 @@ async def run_loop_for_single_user(
             match status:
                 case "success":
                     del task_data_map[task_key]
-                case "failed":
+                case "failed" | "redirect":
                     print(f"Failed completely - [{task_key[1]}] of {user_label}")
                     failed_courses.append(
                         {
