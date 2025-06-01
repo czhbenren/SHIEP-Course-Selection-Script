@@ -1,39 +1,39 @@
-# SHIEP 选课脚本
+# SHIEP Course Selection Script
 
-这是一个用于自动化处理上海电力大学 (SHIEP) 课程注册系统的脚本, 支持异步 HTTP 请求, 方便批量选课、查询课程、验证 Cookie 等操作适合需要快速选课或查询课程信息的同学
+This is a script for automating the SHIEP course registration system, supporting asynchronous HTTP requests, making it convenient for batch course selection, course inquiry, cookie validation, and other operations. It is suitable for students who need to quickly select or query course information.
 
-## 功能
+## Features
 
-- **自动选课**: 为多个用户批量注册课程
-- **课程查询**: 按关键字 (如课程名) 或条件 (如 `teacher=张三`) 查询课程信息
-- **Cookie 验证**: 检查用户配置中的 Cookie 是否有效
-- **课程可用性检查**: 验证指定课程是否可注册
+- **Automatic Course Selection**: Batch register courses for multiple users.
+- **Course Inquiry**: Query course information by keyword (e.g., course name) or condition (e.g., `teacher=Smith`). 
+- **Cookie Validation**: Check the validity of cookies in user configurations.
+- **Course Availability Check**: Verify if specified courses are available for registration.
 
-## 安装与配置
+## Installation and Configuration
 
-### 1. 安装依赖
+### 1. Install Dependencies
 
-- 确保已安装 Python 3.9+
-- 运行以下命令安装所需库:
+- Ensure Python 3.9+ is installed.
+- Run the following command to install required libraries:
   ```bash
   pip install -r requirements.txt
   ```
 
-### 2. 配置 `custom.py`
+### 2. Configure `custom.py`
 
-- **准备文件**:
-  - 将 `custom.py.example` 复制为 `custom.py` (例如: `cp custom.py.example custom.py`)
-  - 编辑 `custom.py`, 添加用户信息、课程配置和查询用户数据
-- **配置格式**: 以人为单位, 每人一个配置对象, 包含 `label` (用户标识) 、`tables` (档案和课程信息) 、`cookies` (登录凭证)示例:
+- **Prepare the File**:
+  - Copy `custom.py.example` to `custom.py` (e.g., `cp custom.py.example custom.py`).
+  - Edit `custom.py` to add user information, course configurations, and inquiry user data.
+- **Configuration Format**: Organized by user, each user has one configuration object containing `label` (user identifier), `tables` (profile and course information), and `cookies` (login credentials). Example:
   ```python
   USER_CONFIGS = [
       {
-          "label": "User_Alice",  # 用户标签, 方便区分
+          "label": "User_Alice",  # User label for identification
           "tables": [
               {
-                  "profileId": "114514",  # 个人档案 ID
+                  "profileId": "114514",  # Personal profile ID
                   "course_ids": [
-                      "COURSEID_A1",  # 课程 ID
+                      "COURSEID_A1",  # Course ID
                       "COURSEID_A2",
                   ],
               },
@@ -46,8 +46,8 @@
               },
           ],
           "cookies": {
-              "JSESSIONID": "ALICE_SESSION_ID_HERE",  # 登录会话 ID
-              "SERVERNAME": "c1",  # 服务器名称
+              "JSESSIONID": "ALICE_SESSION_ID_HERE",  # Login session ID
+              "SERVERNAME": "c1",  # Server name
           },
       },
       {
@@ -69,7 +69,7 @@
       # ... other user configs for selection ...
   ]
   ```
-- **查询用户配置**: 为课程查询功能配置单独的 `INQUIRY_USER_DATA`, 示例:
+- **Inquiry User Configuration**: Configure a separate `INQUIRY_USER_DATA` for the course inquiry function. Example:
   ```python
   INQUIRY_USER_DATA = {
       "label": "DefaultInquiryUser",
@@ -80,80 +80,80 @@
       },
   }
   ```
-- **如何获取 Cookie**:
-  - 打开浏览器, 按 F12 进入开发者工具, 推荐以下步骤:
-    1. **首选**: 切换到“应用程序” (Application) 标签页, 在左侧找到“存储” (Storage) ->“Cookie”, 点击 `https://jw.shiep.edu.cn`, 找到 `JSESSIONID` 和 `SERVERNAME`, 复制其值
-    2. **备选**: 切换到“网络” (Network) 标签页, 登录教务系统后, 检查请求 (如登录或主页请求), 找到 `Cookie` 头中的 `JSESSIONID` 和 `SERVERNAME`
-  - 或者使用 [curlconverter](https://curlconverter.com/) 转换 cURL 请求获取 Cookie
-- **如何获取课程 ID**:
-  - 使用脚本的“查询课程”功能 (运行 `python main.py --inquire`)
-  - 或者访问教务系统 URL: `https://jw.shiep.edu.cn/eams/stdElectCourse!data.action?profileId=<your_profile_id>`, 查看返回的课程数据
-- **如何获取 `profileId`**:
-  - 从上述 URL 或教务系统个人页面中获取, 确保与 Cookie 对应
+- **How to Obtain Cookies**:
+  - Open the browser, press F12 to enter developer tools, and follow these steps:
+    1. **Preferred**: Switch to the “Application” tab, find “Storage” -> “Cookies” on the left, click `https://jw.shiep.edu.cn`, locate `JSESSIONID` and `SERVERNAME`, and copy their values.
+    2. **Alternative**: Switch to the “Network” tab, log into the course registration system, check requests (e.g., login or homepage requests), and find `JSESSIONID` and `SERVERNAME` in the `Cookie` header.
+  - Alternatively, use [curlconverter](https://curlconverter.com/) to convert cURL requests to obtain cookies.
+- **How to Obtain Course IDs**:
+  - Use the script’s “course inquiry” function (run `python main.py --inquire`).
+  - Alternatively, visit the course system URL: `https://jw.shiep.edu.cn/eams/stdElectCourse!data.action?profileId=<your_profile_id>` to view the returned course data.
+- **How to Obtain `profileId`**:
+  - Retrieve it from the above URL or the personal page in the course system, ensuring it matches the cookies.
 
-### 3. 配置 `config.py`
+### 3. Configure `config.py`
 
-- **代理设置**:
-  - 如果使用**官方 EasyConnect VPN**连接校内网络, 无需设置代理, 直接设置:
+- **Proxy Settings**:
+  - If using the **official EasyConnect VPN** to connect to the campus network, no proxy is needed. Set:
     ```python
     USE_PROXY = False
     ```
-  - 如果使用**第三方 VPN** (如 EasierConnect 等), 需设置 `USE_PROXY = True` 并配置代理地址, 例如:
+  - If using a **third-party VPN** (e.g., EasierConnect), set `USE_PROXY = True` and configure the proxy address, for example:
     ```python
     USE_PROXY = True
     proxies = {
-        "all": "socks5://127.0.0.1:10114",  # 替换为你的代理地址和端口
+        "all": "socks5://127.0.0.1:10114",  # Replace with your proxy address and port
     }
     ```
-  - 第三方 VPN 需要安装 `aiohttp-socks` (已包含在 `requirements.txt` 中)
-- **API 参数**: 配置学期和项目参数, 示例:
+  - Third-party VPNs require `aiohttp-socks` (included in `requirements.txt`).
+- **API Parameters**: Configure semester and project parameters. Example:
   ```python
   ENROLLMENT_DATA_API_PARAMS = {
       "projectId": "1",
       "semesterId": "384",
   }
   ```
-  - 确认 `projectId` 和 `semesterId` 与当前学期一致, 可从教务系统请求中获取
+  - Ensure `projectId` and `semesterId` match the current semester, obtainable from course system requests.
 
-### 4. 运行脚本
+### 4. Run the Script
 
-- 在终端运行:
+- Run in the terminal:
   ```bash
-  python main.py <命令>
+  python main.py <command>
   ```
-- 可用命令:
-  - `--start`: 为 `USER_CONFIGS` 中的所有用户自动选课
-  - `--inquire`: 查询课程信息, 支持按关键字 (如课程名) 或条件 (如 `teacher=张三`) 搜索, 输入 `q` 退出
-  - `--validate`: 批量验证 `USER_CONFIGS` 中 Cookie 的有效性
-  - `--check`: 检查指定课程是否可注册
-- 示例:
+- Available commands:
+  - `--start`: Automatically select courses for all users in `USER_CONFIGS`.
+  - `--inquire`: Query course information, supporting searches by keyword (e.g., course name) or condition (e.g., `teacher=Smith`). Enter `q` to exit.
+  - `--validate`: Batch validate the cookies in `USER_CONFIGS`.
+  - `--check`: Check if specified courses are available for registration.
+- Examples:
   ```bash
-  python main.py --start  # 开始选课
-  python main.py --inquire  # 查询课程
+  python main.py --start  # Start course selection
+  python main.py --inquire  # Query courses
   ```
 
-### 5. 中止运行
+### 5. Stop the Script
 
-- 按 `Ctrl+C` 随时中断脚本, 程序会显示“Program interrupted by user”并安全退出
+- Press `Ctrl+C` to interrupt the script at any time. The program will display “Program interrupted by user” and exit safely.
 
-## 注意事项
+## Notes
 
-- **Cookie 有效性**: 确保 `JSESSIONID` 和 `SERVERNAME` 有效, 过期或错误的 Cookie 会导致选课失败
-- **代理设置**: 使用 EasyConnect 时无需代理；第三方 VPN 需正确配置代理地址和端口
-- **课程 ID 准确性**: 选课前确认 `course_ids` 和 `profileId` 正确, 避免选错课程
-- **SSL 验证**: 脚本默认禁用 SSL 验证, 请确保教务系统服务器可信
-- **调试**: 运行 `--validate` 或 `--check` 检查配置是否正确
+- **Cookie Validity**: Ensure `JSESSIONID` and `SERVERNAME` are valid. Expired or incorrect cookies will cause course selection to fail.
+- **Proxy Settings**: No proxy is needed with EasyConnect; third-party VPNs require correct proxy address and port configuration.
+- **Course ID Accuracy**: Verify `course_ids` and `profileId` before selecting courses to avoid errors.
+- **SSL Verification**: The script disables SSL verification by default. Ensure the course system server is trusted.
+- **Debugging**: Run `--validate` or `--check` to verify configuration correctness.
 
-## 常见问题
+## Common Issues
 
-- **Cookie 失效怎么办？**
-  重新登录教务系统, 获取新的 `JSESSIONID` 和 `SERVERNAME`, 更新 `custom.py`
-- **课程 ID 找不到？**
-  使用 `--inquire` 功能查询课程, 或检查教务系统数据接口
-- **代理连接失败？**
-  - 确认是否使用 EasyConnect (无需代理) 或第三方 VPN (需配置代理)
-  - 检查代理地址和端口, 或设置 `USE_PROXY = False` 禁用代理
+- **What if cookies expire?**  
+  Log into the course system again, obtain new `JSESSIONID` and `SERVERNAME`, and update `custom.py`.
+- **Can’t find course IDs?**  
+  Use the `--inquire` function to query courses or check the course system data interface.
+- **Proxy connection failed?**  
+  - Confirm whether you’re using EasyConnect (no proxy needed) or a third-party VPN (proxy required).  
+  - Check the proxy address and port, or set `USE_PROXY = False` to disable the proxy.
 
-## 贡献
+## Contribution
 
-欢迎提交 issue 或 pull request 改进脚本！如有问题, 请在 GitHub 仓库反馈
+We welcome issues or pull requests to improve the script! For any questions, please provide feedback in the GitHub repository.
