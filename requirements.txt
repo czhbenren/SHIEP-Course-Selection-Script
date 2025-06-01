@@ -1,4 +1,0 @@
-aiohttp
-aiohttp_socks
-tqdm
-urllib3
