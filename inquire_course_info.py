@@ -271,6 +271,7 @@ async def inquire_course_info():
                     )
                 print(f"{len(filtered)} matching courses in total.\n")
 
+                continue
                 # Ask if user wants to add a course to USER_CONFIGS
                 match input("\nDo you want to add one or all course filtered to USER_CONFIGS? (y/N): ").strip().upper():
                     case "Y":
