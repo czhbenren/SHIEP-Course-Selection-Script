@@ -1,4 +1,6 @@
 import asyncio
+import csv
+import os
 import aiohttp
 import json
 import sys
@@ -279,6 +281,23 @@ async def inquire_course_info():
                         f"Name: {course_item['name']}, Teacher: {course_item['teacher']}"
                     )
                 print(f"{len(filtered)} matching courses in total.\n")
+
+                export_choice = input("Do you want to export the filtered courses to a CSV file? (y/n): ").strip().lower()
+                if export_choice == 'y':
+                    file_path = input("Enter the file path to save the CSV (relative or absolute, e.g., 'courses.csv' or '/path/to/courses.csv'): ").strip()
+                    if not file_path.endswith('.csv'):
+                        file_path += '.csv'
+                    file_path = os.path.abspath(file_path)
+                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+                    fieldnames = sorted(filtered[0].keys())
+                    try:
+                        with open(file_path, 'w', newline='', encoding='utf-8-sig') as csvfile:
+                            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                            writer.writeheader()
+                            writer.writerows(filtered)
+                        print(f"Successfully exported {len(filtered)} filtered courses to {file_path}\n")
+                    except Exception as e:
+                        print(f"Error writing to file {file_path}: {str(e)}\n")
 
                 continue
                 # Ask if user wants to add a course to USER_CONFIGS

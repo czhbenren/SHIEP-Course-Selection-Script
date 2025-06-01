@@ -162,3 +162,5 @@ cython_debug/
 
 # Custom
 custom.py
+*.csv
+*.xlsx
