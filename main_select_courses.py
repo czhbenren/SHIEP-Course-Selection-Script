@@ -22,7 +22,7 @@ async def attempt_single_course_selection(
     user_cookies: dict,
     user_params: dict,
     user_label: str,
-):
+) -> str:
     """
     Makes a single attempt to select a course for a specific user.
     Sets the provided succeed_event if successful.
@@ -41,8 +41,6 @@ async def attempt_single_course_selection(
         "allow_redirects": False,
     }
 
-    # print(f"\n{request_kwargs}\n")  # DEBUG
-
     profileId = user_params.get("profileId", "N/A")
 
     try:
@@ -56,10 +54,10 @@ async def attempt_single_course_selection(
                         print(f"User {user_label} ({profileId}) - Course ID {course_id}: Already selected.\n")
                     else:
                         print(f"User {user_label} ({profileId}) - Course ID {course_id}: Selection Succeeded!\n")
-                    return True
+                    return "success"
                 elif any(word in response_text for word in failed_words):
                     print(f"User {user_label} ({profileId}) - Course ID {course_id}: Failed (reason: {response_text.strip()}).\n")
-                    return None
+                    return "failed"
                 elif "当前选课不开放" in response_text:
                     print(f"User {user_label} ({profileId}) - Course ID {course_id}: Failed (error: 操作失败:当前选课不开放).\n")
                 elif "请不要过快点击" in response_text:
@@ -80,7 +78,7 @@ async def attempt_single_course_selection(
     except Exception as e:
         print(f"User {user_label} ({profileId}) - Course ID {course_id}: Exception: {e}\n")
 
-    return False
+    return "error"
 
 
 async def run_loop_for_single_user(
@@ -136,15 +134,16 @@ async def run_loop_for_single_user(
         while True:
             task_key = task_queue.popleft()
             task_data: dict = task_data_map[task_key]
-            success = await attempt_single_course_selection(**task_data)
+            status = await attempt_single_course_selection(**task_data)
+            # print(status + "\n")
 
-            if success is None:
-                print(f"Failed completely - [{task_key[1]}] of {task_data.get(user_label)}")
-                del task_data_map[task_key]
-            else:
-                if success:
+            match status:
+                case "success":
                     del task_data_map[task_key]
-                else:
+                case "failed":
+                    print(f"Failed completely - [{task_key[1]}] of {task_data.get(user_label)}")
+                    del task_data_map[task_key]
+                case "error" | _:
                     if task_queue:
                         top_task = task_queue.popleft()
                         task_queue.appendleft(task_key)
