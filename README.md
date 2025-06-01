@@ -91,31 +91,8 @@ This is a script for automating the SHIEP course registration system, supporting
 - **How to Obtain `profileId`**:
   - Retrieve it from the above URL or the personal page in the course system, ensuring it matches the cookies.
 
-### 3. Configure `config.py`
 
-- **Proxy Settings**:
-  - If using the **official EasyConnect VPN** to connect to the campus network, no proxy is needed. Set:
-    ```python
-    USE_PROXY = False
-    ```
-  - If using a **third-party VPN** (e.g., EasierConnect), set `USE_PROXY = True` and configure the proxy address, for example:
-    ```python
-    USE_PROXY = True
-    proxies = {
-        "all": "socks5://127.0.0.1:10114",  # Replace with your proxy address and port
-    }
-    ```
-  - Third-party VPNs require `aiohttp-socks` (included in `requirements.txt`).
-- **API Parameters**: Configure semester and project parameters. Example:
-  ```python
-  ENROLLMENT_DATA_API_PARAMS = {
-      "projectId": "1",
-      "semesterId": "384",
-  }
-  ```
-  - Ensure `projectId` and `semesterId` match the current semester, obtainable from course system requests.
-
-### 4. Run the Script
+### 3. Run the Script
 
 - Run in the terminal:
   ```bash
@@ -132,7 +109,7 @@ This is a script for automating the SHIEP course registration system, supporting
   python main.py --inquire  # Query courses
   ```
 
-### 5. Stop the Script
+### 4. Stop the Script
 
 - Press `Ctrl+C` to interrupt the script at any time. The program will display “Program interrupted by user” and exit safely.
 
