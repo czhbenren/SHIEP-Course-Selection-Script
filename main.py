@@ -20,13 +20,19 @@ def display_help():
 
 
 async def main():
-    if len(sys.argv) < 2:
+    args = sys.argv
+
+    if len(args) < 2:
         display_help()
         return
 
-    match sys.argv[1].lower():  # Only use the first argument
+    match args[1].lower():
         case "--start":
-            await main_select_courses()
+            if len(args) > 2 and args[2].lower() == "--endless":
+                print("Entering ENDLESS mode.")
+                await main_select_courses(endless=True)
+            else:
+                await main_select_courses()
         case "--inquire":
             await inquire_course_info()
         case "--validate":

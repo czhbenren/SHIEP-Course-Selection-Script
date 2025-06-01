@@ -15,6 +15,7 @@ from custom import USE_PROXY, proxies, USER_CONFIGS
 
 warnings.simplefilter("ignore", InsecureRequestWarning)
 
+ENDLESS = False
 failed_courses: list[dict] = []
 
 
@@ -145,15 +146,18 @@ async def run_loop_for_single_user(
                 case "success":
                     del task_data_map[task_key]
                 case "failed" | "redirect":
-                    print(f"Failed completely - [{task_key[1]}] of {user_label}")
-                    failed_courses.append(
-                        {
-                            "user_label": user_label,
-                            "profileId": task_key[0],
-                            "course_id": task_key[1],
-                        }
-                    )
-                    del task_data_map[task_key]
+                    if ENDLESS:
+                        task_queue.append(task_key)
+                    else:
+                        print(f"Failed completely - ({task_key[0]}, {task_key[1]}) of {user_label}")
+                        failed_courses.append(
+                            {
+                                "user_label": user_label,
+                                "profileId": task_key[0],
+                                "course_id": task_key[1],
+                            }
+                        )
+                        del task_data_map[task_key]
                 case "error" | _:
                     if task_queue:
                         top_task = task_queue.popleft()
@@ -170,10 +174,13 @@ async def run_loop_for_single_user(
     print(f"User {user_label} - Course selection processes has concluded.")
 
 
-async def main_select_courses():
+async def main_select_courses(endless=False):
     if not USER_CONFIGS:
         print("No user configurations found in custom.py. Exiting course selection.")
         return
+    
+    global ENDLESS
+    ENDLESS = endless
 
     peer_selection_tasks = []
     print("Preparing course selection tasks for all users...")

@@ -13,7 +13,7 @@ This is a script for automating the SHIEP course registration system, supporting
 
 ### 1. Install Dependencies
 
-- Ensure Python 3.9+ is installed.
+- Ensure ***Python 3.10+*** is installed.
 - Run the following command to install required libraries:
   ```bash
   pip install -r requirements.txt
