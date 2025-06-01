@@ -5,7 +5,7 @@ This is a script for automating the SHIEP course registration system, supporting
 ## Features
 
 - **Automatic Course Selection**: Batch register courses for multiple users.
-- **Course Inquiry**: Query course information by keyword (e.g., course name) or condition (e.g., `teacher=Smith`). 
+- **Course Inquiry**: Query course information by keyword (e.g., course name) or condition (e.g., `teacher=Smith`).
 - **Cookie Validation**: Check the validity of cookies in user configurations.
 - **Course Availability Check**: Verify if specified courses are available for registration.
 
@@ -150,8 +150,8 @@ This is a script for automating the SHIEP course registration system, supporting
   Log into the course system again, obtain new `JSESSIONID` and `SERVERNAME`, and update `custom.py`.
 - **Can’t find course IDs?**  
   Use the `--inquire` function to query courses or check the course system data interface.
-- **Proxy connection failed?**  
-  - Confirm whether you’re using EasyConnect (no proxy needed) or a third-party VPN (proxy required).  
+- **Proxy connection failed?**
+  - Confirm whether you’re using EasyConnect (no proxy needed) or a third-party VPN (proxy required).
   - Check the proxy address and port, or set `USE_PROXY = False` to disable the proxy.
 
 ## Contribution
