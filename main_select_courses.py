@@ -15,6 +15,8 @@ from custom import USE_PROXY, proxies, USER_CONFIGS
 
 warnings.simplefilter("ignore", InsecureRequestWarning)
 
+failed_courses: list[dict] = []
+
 
 async def attempt_single_course_selection(
     session: aiohttp.ClientSession,
@@ -141,7 +143,12 @@ async def run_loop_for_single_user(
                 case "success":
                     del task_data_map[task_key]
                 case "failed":
-                    print(f"Failed completely - [{task_key[1]}] of {task_data.get(user_label)}")
+                    print(f"Failed completely - [{task_key[1]}] of {user_label}")
+                    failed_courses.append({
+                        "user_label": user_label,
+                        "profileId": task_key[0],
+                        "course_id": task_key[1],
+                    })
                     del task_data_map[task_key]
                 case "error" | _:
                     if task_queue:
@@ -188,4 +195,10 @@ async def main_select_courses():
     await tqdm.gather(*peer_selection_tasks, desc="Total Course Selection Progress")
 
     print("\nAll course selection tasks have been processed.")
+    if failed_courses:
+        print("\nSummary of failed course selections:")
+        for failure in failed_courses:
+            print(f"User {failure['user_label']} ({failure['profileId']}) - Course ID {failure['course_id']}: Failed.")
+    else:
+        print("\nNo failed course selections.")
     await asyncio.sleep(0.1)  # Add a small delay to ensure all print statements from tasks are flushed
